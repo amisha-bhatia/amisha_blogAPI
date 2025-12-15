@@ -1,0 +1,241 @@
+openapi: 3.0.3
+
+info:
+  title: Advanced Blog API
+  description: |
+    Production-grade REST API built with Node.js, Express, and MongoDB.
+
+    Features:
+    - JWT Authentication
+    - Role-based Authorization (User / Admin)
+    - Image Upload using Multer
+    - Pagination & Search
+    - Email OTP Verification
+    - Rate Limiting & Security (Helmet)
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5000/api
+    description: Local development server
+
+tags:
+  - name: Users
+    description: User authentication and management
+  - name: Posts
+    description: Blog post operations
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RegisterUser:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          example: john@example.com
+        password:
+          type: string
+          example: Strong@123
+
+    LoginUser:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          example: john@example.com
+        password:
+          type: string
+          example: Strong@123
+
+    UserResponse:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        isVerified:
+          type: boolean
+
+    CreatePost:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          example: My First Blog
+        content:
+          type: string
+          example: This is the blog content
+        image:
+          type: string
+          format: binary
+
+    PostResponse:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        image:
+          type: string
+        likes:
+          type: number
+        author:
+          type: object
+          properties:
+            _id:
+              type: string
+            name:
+              type: string
+            email:
+              type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+paths:
+  /users/register:
+    post:
+      tags: [Users]
+      summary: Register a new user
+      description: Creates a new user and sends OTP to email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterUser"
+      responses:
+        201:
+          description: User registered successfully
+        400:
+          description: Validation error
+
+  /users/login:
+    post:
+      tags: [Users]
+      summary: Login user
+      description: Authenticates user and returns JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginUser"
+      responses:
+        200:
+          description: Login successful
+        400:
+          description: Invalid credentials
+        404:
+          description: User not found
+
+  /posts:
+    get:
+      tags: [Posts]
+      summary: Get all posts
+      description: Fetch posts with pagination and search
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            example: 5
+        - in: query
+          name: search
+          schema:
+            type: string
+            example: nodejs
+      responses:
+        200:
+          description: List of posts
+
+    post:
+      tags: [Posts]
+      summary: Create a new post
+      description: Authenticated users can create posts with image upload
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/CreatePost"
+      responses:
+        201:
+          description: Post created successfully
+        401:
+          description: Unauthorized
+
+  /posts/{id}:
+    put:
+      tags: [Posts]
+      summary: Update a post
+      description: Update post by ID (Authenticated user)
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePost"
+      responses:
+        200:
+          description: Post updated
+        401:
+          description: Unauthorized
+
+    delete:
+      tags: [Posts]
+      summary: Delete a post
+      description: Admin-only post deletion
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Post deleted
+        403:
+          description: Access denied (Admin only)
