@@ -32,7 +32,7 @@ jobs:
 
       - name: Run tests (optional)
         run: |
-          if [ -f package.json ] && grep -q "test" package.json; then
+          if [ -f package.json ] && grep -q "test" package.json && ! grep -q "Error: no test specified" package.json; then
             npm test
           else
             echo "No tests found"
